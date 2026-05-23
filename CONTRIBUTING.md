@@ -268,4 +268,4 @@ Read [SECURITY.md](SECURITY.md) for the responsible disclosure process.
 
 ## Questions?
 
-Open a [GitHub Discussion](https://github.com/manishdashsharma/imgo/discussions) for anything that is not a bug or feature request.
+Open a [GitHub Discussion](https://github.com/manishdashsharma/Imgo/discussions) for anything that is not a bug or feature request.

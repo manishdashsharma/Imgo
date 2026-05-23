@@ -48,8 +48,8 @@ GET /v1/i/your-image-id?w=800&format=webp&q=80
 ### Docker (recommended)
 
 ```bash
-git clone https://github.com/manishdashsharma/imgo.git
-cd imgo
+git clone https://github.com/manishdashsharma/Imgo.git
+cd Imgo
 cp .env.example .env
 docker-compose up -d
 ```
@@ -61,8 +61,8 @@ Your API is running at `http://localhost:3000`.
 **Prerequisites:** Node.js 20+, MongoDB, Redis
 
 ```bash
-git clone https://github.com/manishdashsharma/imgo.git
-cd imgo
+git clone https://github.com/manishdashsharma/Imgo.git
+cd Imgo
 npm install
 cp .env.example .env
 # edit .env with your MongoDB and Redis URLs
@@ -281,8 +281,8 @@ MinIO's web dashboard is available at port `9001` when using `docker-compose`.
 curl -fsSL https://get.docker.com | sh
 
 # Clone and configure
-git clone https://github.com/manishdashsharma/imgo.git
-cd imgo
+git clone https://github.com/manishdashsharma/Imgo.git
+cd Imgo
 cp .env.example .env
 nano .env   # set CORS_ORIGIN, credentials
 
@@ -341,8 +341,8 @@ Each unique combination of image + transform params gets its own cache entry (24
 
 Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 
-- Found a bug? [Open an issue](https://github.com/manishdashsharma/imgo/issues/new?template=bug_report.md)
-- Have a feature idea? [Start a discussion](https://github.com/manishdashsharma/imgo/discussions)
+- Found a bug? [Open an issue](https://github.com/manishdashsharma/Imgo/issues/new?template=bug_report.md)
+- Have a feature idea? [Start a discussion](https://github.com/manishdashsharma/Imgo/discussions)
 - Want to contribute? [Read the guide](CONTRIBUTING.md)
 
 ---
