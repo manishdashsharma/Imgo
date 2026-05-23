@@ -1,0 +1,77 @@
+{
+  "name": "imgo",
+  "version": "1.0.0",
+  "description": "Self-hosted image processing service — open-source alternative to ImageKit and Cloudinary",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "init": "node scripts/init-project.js",
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write \"src/**/*.js\"",
+    "setup": "npm install"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1053.0",
+    "colorette": "^2.0.20",
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "express-async-handler": "^1.2.0",
+    "express-rate-limit": "^8.0.1",
+    "glob": "^11.0.3",
+    "helmet": "^8.1.0",
+    "ioredis": "^5.10.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.17.0",
+    "morgan": "^1.10.1",
+    "multer": "^2.1.1",
+    "sharp": "^0.34.5",
+    "source-map-support": "^0.5.21",
+    "uuid": "^14.0.0",
+    "winston": "^3.17.0",
+    "winston-mongodb": "^7.0.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "@eslint/js": "^9.32.0",
+    "eslint": "^9.32.0",
+    "lint-staged": "^16.1.4",
+    "nodemon": "^3.1.10",
+    "prettier": "^3.6.2"
+  },
+  "keywords": [
+    "image-processing",
+    "self-hosted",
+    "imagekit-alternative",
+    "cloudinary-alternative",
+    "sharp",
+    "express",
+    "nodejs",
+    "open-source"
+  ],
+  "author": "Manish Dash Sharma",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/manishdashsharma/imgo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/manishdashsharma/imgo/issues"
+  },
+  "homepage": "https://github.com/manishdashsharma/imgo#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  }
+}

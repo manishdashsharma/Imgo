@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or Discussion
+    url: https://github.com/manishdashsharma/imgo/discussions
+    about: For questions and general discussion, please use GitHub Discussions.
+  - name: Security Vulnerability
+    url: https://github.com/manishdashsharma/imgo/blob/main/SECURITY.md
+    about: Please review our security policy before reporting vulnerabilities.
