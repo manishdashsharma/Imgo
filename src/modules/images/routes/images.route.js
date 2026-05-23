@@ -1,8 +1,14 @@
 import { Router } from 'express';
 import multer, { memoryStorage } from 'multer';
-import { validateRequest } from '../../../shared/index.js';
-import { uploadImageSchema, deleteImageSchema } from '../validations/images.schema.js';
-import { uploadImage, getImage, listImages, deleteImage } from '../controllers/images.controller.js';
+import { authenticate, validateRequest } from '../../../shared/index.js';
+import { uploadImageSchema, deleteImageSchema, signImageSchema } from '../validations/images.schema.js';
+import {
+  uploadImage,
+  getImage,
+  listImages,
+  deleteImage,
+  signImageUrl,
+} from '../controllers/images.controller.js';
 import config from '../../../config/index.js';
 
 const router = Router();
@@ -19,9 +25,10 @@ const upload = multer({
   },
 });
 
-router.post('/upload', upload.single('image'), validateRequest(uploadImageSchema), uploadImage);
-router.get('/', listImages);
-router.get('/:imageId', getImage);
-router.post('/delete', validateRequest(deleteImageSchema), deleteImage);
+router.post('/upload', authenticate, upload.single('image'), validateRequest(uploadImageSchema), uploadImage);
+router.get('/', authenticate, listImages);
+router.get('/:imageId', authenticate, getImage);
+router.post('/sign', authenticate, validateRequest(signImageSchema), signImageUrl);
+router.post('/delete', authenticate, validateRequest(deleteImageSchema), deleteImage);
 
 export { router as imagesRoutes };

@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import config from '../config/index.js';
+import config from '../../config/index.js';
 
 class LocalStorageAdapter {
   constructor() {
@@ -16,7 +16,7 @@ class LocalStorageAdapter {
 
   async get(key) {
     const filePath = path.join(this.basePath, key);
-    return await fs.readFile(filePath);
+    return fs.readFile(filePath);
   }
 
   async delete(key) {

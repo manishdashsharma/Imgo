@@ -2,10 +2,12 @@ import path from 'path';
 import { randomUUID } from 'crypto';
 import sharp from 'sharp';
 import ImageModel from '../../../models/image.model.js';
-import { getStorageAdapter } from '../../../storage/adapter.js';
+import { getStorageAdapter } from '../../../shared/services/adapter.js';
+import { buildSignedUrl } from '../../../shared/utils/signedUrl.js';
+import config from '../../../config/index.js';
 
 const uploadImageService = async (file, body) => {
-  const { folder = 'default' } = body;
+  const { folder = 'default', visibility = 'public' } = body;
   const ext = path.extname(file.originalname).replace('.', '') || 'jpg';
   const key = `${folder}/${randomUUID()}.${ext}`;
 
@@ -23,6 +25,7 @@ const uploadImageService = async (file, body) => {
     size: file.size,
     width: metadata.width || null,
     height: metadata.height || null,
+    visibility,
   });
 
   return { image };
@@ -91,4 +94,36 @@ const deleteImageService = async (imageId) => {
   return { deleted: true };
 };
 
-export { uploadImageService, getImageService, listImagesService, deleteImageService };
+const signImageUrlService = async ({ imageId, expiresIn, params }) => {
+  if (!config.signedUrl.secret) {
+    const error = new Error('SIGNED_URL_SECRET is not configured');
+    error.statusCode = 500;
+    throw error;
+  }
+
+  const image = await ImageModel
+    .findOne({ _id: imageId, isActive: true })
+    .select('_id visibility')
+    .lean();
+
+  if (!image) {
+    const error = new Error('Image not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const signed = buildSignedUrl(imageId, params, expiresIn);
+  const qs = Object.entries(signed)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&');
+
+  return { url: `/v1/i/${imageId}?${qs}` };
+};
+
+export {
+  uploadImageService,
+  getImageService,
+  listImagesService,
+  deleteImageService,
+  signImageUrlService,
+};

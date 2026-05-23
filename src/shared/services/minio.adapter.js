@@ -5,7 +5,7 @@ import {
   DeleteObjectCommand,
   HeadObjectCommand,
 } from '@aws-sdk/client-s3';
-import config from '../config/index.js';
+import config from '../../config/index.js';
 
 class MinIOStorageAdapter {
   constructor() {

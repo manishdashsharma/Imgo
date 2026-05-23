@@ -1,8 +1,9 @@
 import { createHash } from 'crypto';
 import sharp from 'sharp';
 import ImageModel from '../../../models/image.model.js';
-import { getStorageAdapter } from '../../../storage/adapter.js';
+import { getStorageAdapter } from '../../../shared/services/adapter.js';
 import { CacheManager } from '../../../config/redis.js';
+import { verifySignedUrl } from '../../../shared/utils/signedUrl.js';
 
 const cache = new CacheManager();
 
@@ -31,16 +32,25 @@ const applyTransforms = async (buffer, params, originalMimeType) => {
   return { buffer: outputBuffer, contentType: `image/${outputFormat}` };
 };
 
-const transformImageService = async (imageId, validatedParams) => {
+const transformImageService = async (imageId, validatedParams, rawQuery = {}) => {
   const image = await ImageModel
     .findOne({ _id: imageId, isActive: true })
-    .select('key mimeType updatedAt')
+    .select('key mimeType visibility updatedAt')
     .lean();
 
   if (!image) {
     const error = new Error('Image not found');
     error.statusCode = 404;
     throw error;
+  }
+
+  if (image.visibility === 'private') {
+    const valid = verifySignedUrl(imageId, rawQuery);
+    if (!valid) {
+      const error = new Error('Missing or invalid signed URL');
+      error.statusCode = 403;
+      throw error;
+    }
   }
 
   const paramHash = buildParamHash(validatedParams);
@@ -60,7 +70,7 @@ const transformImageService = async (imageId, validatedParams) => {
 
   cache.setBuffer(cacheKey, buffer, contentType, 86400);
 
-  return { buffer, contentType, fromCache: false, etag };
+  return { buffer, contentType, fromCache: false, etag, visibility: image.visibility };
 };
 
 export { transformImageService };

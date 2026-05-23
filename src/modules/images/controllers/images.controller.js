@@ -4,6 +4,7 @@ import {
   getImageService,
   listImagesService,
   deleteImageService,
+  signImageUrlService,
 } from '../services/images.service.js';
 
 const uploadImage = asyncHandler(async (req, res) => {
@@ -56,4 +57,14 @@ const deleteImage = asyncHandler(async (req, res) => {
   }
 });
 
-export { uploadImage, getImage, listImages, deleteImage };
+const signImageUrl = asyncHandler(async (req, res) => {
+  try {
+    const result = await signImageUrlService(req.body);
+    return httpResponse(req, res, 200, responseMessage.custom('Signed URL generated'), result);
+  } catch (error) {
+    logger.error('Sign URL failed', { error: error.message, requestId: req.requestId });
+    return httpError(req, res, error, error.statusCode || 500);
+  }
+});
+
+export { uploadImage, getImage, listImages, deleteImage, signImageUrl };

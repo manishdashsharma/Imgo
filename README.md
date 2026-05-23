@@ -5,13 +5,16 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org)
 [![Docker](https://img.shields.io/badge/Docker-ready-blue.svg)](docker-compose.yml)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Status](https://img.shields.io/badge/status-active-brightgreen.svg)]()
 
-Imgo is an open-source alternative to ImageKit and Cloudinary. Upload images, serve them with on-the-fly transformations via URL parameters, and pay nothing — ever. Deploy it on any VPS in under 5 minutes.
+Imgo is an open-source alternative to ImageKit and Cloudinary — a self-hosted image processing service you deploy once and own forever. Upload images, serve them with on-the-fly URL transformations, protect them with API keys and signed URLs, and pay $0 per month.
 
 ```
 GET /v1/i/your-image-id?w=800&format=webp&q=80
 ```
+
+> Stop renting your image infrastructure.
 
 ---
 
@@ -20,26 +23,30 @@ GET /v1/i/your-image-id?w=800&format=webp&q=80
 | | Imgo | ImageKit | Cloudinary |
 |---|---|---|---|
 | Monthly cost | **$0** | $59–$249+ | $99–$499+ |
-| Bandwidth limits | **None** | 25–100 GB | 25–100 GB |
+| Bandwidth | **Unlimited** | 25–100 GB | 25–100 GB |
 | Transformations | **Unlimited** | 1,000–10,000/mo | 25,000/mo |
+| API key auth | **Yes** | Yes | Yes |
+| Signed URLs | **Yes** | Yes | Yes |
 | Self-hosted | **Yes** | No | No |
 | Open source | **Yes** | No | No |
 | Data ownership | **Full** | Vendor | Vendor |
-| EXIF stripping | **Built-in** | Paid addon | Paid addon |
 
 ---
 
 ## Features
 
 - **On-the-fly transforms** — resize, compress, convert format, blur, grayscale via URL params
+- **API key authentication** — generate, list, and revoke keys via REST API
+- **Signed URLs** — time-limited signed URLs for private images
+- **Public / private images** — per-image visibility control at upload time
+- **Redis transform cache** — processed images cached 24h, sub-millisecond repeat requests
 - **ETag + HTTP caching** — 304 responses, `immutable` cache headers, browser-native caching
-- **Redis transform cache** — processed images cached for 24h, sub-millisecond repeat requests
 - **Storage adapters** — local filesystem or MinIO (S3-compatible), swap with one env var
 - **EXIF stripping** — metadata removed by default for privacy
 - **Folder organization** — group images into logical folders
 - **Health endpoints** — `/ready`, `/live`, `/detailed` for container orchestration
-- **Rate limiting** — built-in, configurable per environment
-- **Docker first** — one `docker-compose up` brings everything up
+- **Rate limiting** — built-in, configurable
+- **Docker first** — one `./start.sh` brings everything up
 
 ---
 
@@ -53,9 +60,7 @@ cd Imgo
 ./start.sh
 ```
 
-`start.sh` handles everything — checks Docker is running, creates `.env` if missing, starts all services, and shows live status.
-
-Your API is running at `http://localhost:3000`.
+`start.sh` handles everything — checks Docker, creates `.env` if missing, starts all services, and shows live status. Your API is live at `http://localhost:3000`.
 
 ### Local Development
 
@@ -66,8 +71,40 @@ git clone https://github.com/manishdashsharma/Imgo.git
 cd Imgo
 npm install
 cp .env.example .env
-# edit .env with your MongoDB and Redis URLs
+# edit .env — set MONGODB_URL, REDIS_URL
 npm run dev
+```
+
+---
+
+## First-Time Setup
+
+On a fresh deploy, create your first API key:
+
+```bash
+curl -X POST http://localhost:3000/v1/auth/setup \
+  -H "Content-Type: application/json" \
+  -d '{"name": "my-app"}'
+```
+
+```json
+{
+  "data": {
+    "apiKey": {
+      "key": "imgo_xK9mP2...",
+      "keyPrefix": "imgo_xK9mP2",
+      "name": "my-app"
+    }
+  }
+}
+```
+
+**Store the key immediately — it is shown only once.**
+
+All subsequent requests to management endpoints require:
+
+```
+Authorization: Bearer imgo_xK9mP2...
 ```
 
 ---
@@ -76,25 +113,28 @@ npm run dev
 
 ```bash
 curl -X POST http://localhost:3000/v1/images/upload \
+  -H "Authorization: Bearer <api-key>" \
   -F "image=@photo.jpg" \
-  -F "folder=products"
+  -F "folder=products" \
+  -F "visibility=public"
 ```
 
+`visibility` is optional — defaults to `public`. Use `private` for images that require signed URLs.
+
 **Response:**
+
 ```json
 {
-  "success": true,
-  "message": "Image uploaded successfully",
   "data": {
     "image": {
       "_id": "664f1a2b3c4d5e6f7a8b9c0d",
-      "url": "/storage/products/550e8400-e29b-41d4-a716-446655440000.jpg",
       "folder": "products",
       "originalName": "photo.jpg",
       "mimeType": "image/jpeg",
       "size": 245760,
       "width": 1920,
-      "height": 1080
+      "height": 1080,
+      "visibility": "public"
     }
   }
 }
@@ -103,6 +143,8 @@ curl -X POST http://localhost:3000/v1/images/upload \
 ---
 
 ## Serve & Transform
+
+Public images are served without authentication — safe for `<img>` tags, CDN, and browsers.
 
 ```
 GET /v1/i/:imageId
@@ -124,138 +166,140 @@ GET /v1/i/:imageId?w=300&h=300&format=webp&q=80
 ### Examples
 
 ```bash
-# Thumbnail (200×200, WebP)
-curl http://localhost:3000/v1/i/664f1a2b?w=200&h=200&format=webp
+# Thumbnail — 200×200, WebP
+curl "http://localhost:3000/v1/i/664f1a2b?w=200&h=200&format=webp"
 
-# High-quality banner (1200px wide, AVIF)
-curl http://localhost:3000/v1/i/664f1a2b?w=1200&format=avif&q=90
+# Banner — 1200px wide, AVIF, high quality
+curl "http://localhost:3000/v1/i/664f1a2b?w=1200&format=avif&q=90"
 
-# Blurred placeholder
-curl http://localhost:3000/v1/i/664f1a2b?w=20&blur=5
+# Blur placeholder
+curl "http://localhost:3000/v1/i/664f1a2b?w=20&blur=5"
 
 # Grayscale avatar
-curl http://localhost:3000/v1/i/664f1a2b?w=100&h=100&grayscale=true&format=webp
+curl "http://localhost:3000/v1/i/664f1a2b?w=100&h=100&grayscale=true&format=webp"
 
 # Portrait crop
-curl http://localhost:3000/v1/i/664f1a2b?w=400&h=600&fit=cover
+curl "http://localhost:3000/v1/i/664f1a2b?w=400&h=600&fit=cover"
 ```
+
+---
+
+## Signed URLs (Private Images)
+
+Private images return `403` without a valid signed URL. Generate one from your backend:
+
+```bash
+curl -X POST http://localhost:3000/v1/images/sign \
+  -H "Authorization: Bearer <api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "imageId": "664f1a2b3c4d5e6f7a8b9c0d",
+    "expiresIn": 3600,
+    "params": { "w": 300, "format": "webp" }
+  }'
+```
+
+```json
+{
+  "data": {
+    "url": "/v1/i/664f1a2b?w=300&format=webp&expires=1716000000&sig=da217b44..."
+  }
+}
+```
+
+The URL is valid for `expiresIn` seconds (max 7 days). Tampering with any param invalidates the signature.
 
 ---
 
 ## API Reference
 
+### Auth
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/v1/auth/setup` | None | First-time setup — creates initial key (fails if keys exist) |
+| `POST` | `/v1/auth/keys/create` | Required | Create an additional API key |
+| `GET` | `/v1/auth/keys` | Required | List active keys (keys are masked) |
+| `POST` | `/v1/auth/keys/revoke` | Required | Revoke a key by ID |
+
 ### Images
 
-#### Upload image
-```
-POST /v1/images/upload
-Content-Type: multipart/form-data
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/v1/images/upload` | Required | Upload image |
+| `GET` | `/v1/images` | Required | List images (paginated, filterable by folder) |
+| `GET` | `/v1/images/:imageId` | Required | Get image metadata |
+| `POST` | `/v1/images/sign` | Required | Generate signed URL for a private image |
+| `POST` | `/v1/images/delete` | Required | Soft-delete image |
 
-Fields:
-  image    File     Required. The image file.
-  folder   string   Optional. Destination folder (default: "default")
-```
+### Transform
 
-#### List images
-```
-GET /v1/images?folder=products&page=1&limit=20
-```
-
-#### Get image metadata
-```
-GET /v1/images/:imageId
-```
-
-#### Delete image (soft)
-```
-POST /v1/images/delete
-Content-Type: application/json
-
-{ "imageId": "664f1a2b3c4d5e6f7a8b9c0d" }
-```
-
----
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/v1/i/:imageId` | None (public) / Signed URL (private) | Serve and transform image |
 
 ### Folders
 
-#### Create folder
-```
-POST /v1/folders/create
-Content-Type: application/json
-
-{ "name": "Products" }
-```
-
-#### List folders
-```
-GET /v1/folders?page=1&limit=20
-```
-
-#### Delete folder
-```
-POST /v1/folders/delete
-Content-Type: application/json
-
-{ "folderId": "664f1a2b3c4d5e6f7a8b9c0d" }
-```
-
-> Folders with active images cannot be deleted.
-
----
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/v1/folders/create` | Required | Create a folder |
+| `GET` | `/v1/folders` | Required | List folders (paginated) |
+| `POST` | `/v1/folders/delete` | Required | Delete folder (blocked if has active images) |
 
 ### Health
 
-| Endpoint | Use case |
-|----------|----------|
-| `GET /v1/health` | Basic liveness |
+| Endpoint | Description |
+|----------|-------------|
+| `GET /v1/health` | Basic liveness check |
 | `GET /v1/health/live` | Kubernetes liveness probe |
 | `GET /v1/health/ready` | Kubernetes readiness probe |
-| `GET /v1/health/detailed` | MongoDB + Redis + storage status |
-| `GET /v1/health/system` | Full system snapshot (saved to DB) |
+| `GET /v1/health/detailed` | MongoDB + Redis + storage status with latency |
+| `GET /v1/health/system` | Full system snapshot |
 
 ---
 
 ## Configuration
 
-Copy `.env.example` to `.env` and edit:
+All configuration lives in `.env`. Copy the example to get started:
 
-```env
-ENV=production
-PORT=3000
-
-MONGODB_URL=mongodb://localhost:27017/imgo
-REDIS_URL=redis://localhost:6379
-
-# Storage: local | minio
-STORAGE_DRIVER=local
-STORAGE_LOCAL_PATH=./uploads
-
-# MinIO (when STORAGE_DRIVER=minio)
-MINIO_ENDPOINT=http://localhost:9000
-MINIO_ACCESS_KEY=minioadmin
-MINIO_SECRET_KEY=minioadmin
-MINIO_BUCKET=imgo
-
-MAX_FILE_SIZE_MB=50
-ALLOWED_MIME_TYPES=image/jpeg,image/png,image/webp,image/avif,image/gif,image/svg+xml
-
-CORS_ORIGIN=https://yourdomain.com
+```bash
+cp .env.example .env
 ```
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ENV` | `development` | Environment (`development` / `production`) |
+| `PORT` | `3000` | HTTP port |
+| `MONGODB_URL` | — | MongoDB connection string |
+| `REDIS_URL` | — | Redis connection string |
+| `STORAGE_DRIVER` | `local` | Storage backend: `local` or `minio` |
+| `STORAGE_LOCAL_PATH` | `./uploads` | Path for local storage |
+| `MINIO_ENDPOINT` | — | MinIO/S3 endpoint URL |
+| `MINIO_ACCESS_KEY` | — | MinIO access key (also sets `MINIO_ROOT_USER` in Docker) |
+| `MINIO_SECRET_KEY` | — | MinIO secret key (also sets `MINIO_ROOT_PASSWORD` in Docker) |
+| `MINIO_BUCKET` | `imgo` | Bucket name |
+| `MAX_FILE_SIZE_MB` | `50` | Max upload size in MB |
+| `ALLOWED_MIME_TYPES` | see example | Comma-separated allowed MIME types |
+| `SIGNED_URL_SECRET` | — | Secret for signing private image URLs (`openssl rand -hex 32`) |
+| `CORS_ORIGIN` | `*` | Comma-separated allowed origins |
+| `RATE_LIMIT_WINDOW_MS` | `900000` | Rate limit window in ms |
+| `RATE_LIMIT_MAX_REQUESTS` | `100` | Max requests per window |
+| `LOG_LEVEL` | `info` | Log level: `debug` / `info` / `warn` / `error` |
 
 ---
 
 ## Storage Adapters
 
-Imgo ships with two storage adapters. Switch between them with `STORAGE_DRIVER`.
+Switch between storage backends with a single env var. No code changes required.
 
-### Local filesystem (default)
-
-Files are stored in `STORAGE_LOCAL_PATH` and served at `/storage/*`. Good for single-server setups.
+### Local filesystem
 
 ```env
 STORAGE_DRIVER=local
 STORAGE_LOCAL_PATH=./uploads
 ```
+
+Files are stored under `STORAGE_LOCAL_PATH` and served at `/storage/*`. Good for single-server setups and local development.
 
 ### MinIO (recommended for production)
 
@@ -269,13 +313,28 @@ MINIO_SECRET_KEY=your-secret-key
 MINIO_BUCKET=imgo
 ```
 
-MinIO's web dashboard is available at port `9001` when using `docker-compose`.
+MinIO's web dashboard is available at port `9001` when using Docker Compose (`minioadmin / minioadmin` by default).
+
+---
+
+## How Caching Works
+
+```
+Request → If-None-Match header match? → 304 Not Modified  (instant)
+        → Redis HIT?                  → Serve cached buffer (fast)
+        → Redis MISS                  → Fetch from storage
+                                      → Sharp transform + EXIF strip
+                                      → Cache in Redis (24h TTL)
+                                      → Serve buffer
+```
+
+Each unique `imageId + transform params` combination gets its own Redis cache entry. Redis unavailability never crashes the app — it silently falls back to reprocessing on every request.
 
 ---
 
 ## Self-Hosting Guide
 
-### VPS (Ubuntu/Debian)
+### VPS (Ubuntu / Debian)
 
 ```bash
 # Install Docker
@@ -285,13 +344,10 @@ curl -fsSL https://get.docker.com | sh
 git clone https://github.com/manishdashsharma/Imgo.git
 cd Imgo
 cp .env.example .env
-nano .env   # set CORS_ORIGIN, credentials
+nano .env   # set CORS_ORIGIN, SIGNED_URL_SECRET, credentials
 
 # Start
-docker-compose up -d
-
-# Check logs
-docker-compose logs -f imgo
+./start.sh
 ```
 
 ### Nginx reverse proxy
@@ -312,38 +368,43 @@ server {
 }
 ```
 
----
+Add SSL with Certbot:
 
-## How Caching Works
-
+```bash
+certbot --nginx -d images.yourdomain.com
 ```
-Request → ETag match? → 304 Not Modified (instant)
-        → Redis hit?  → Cached buffer served (fast)
-        → Redis miss? → Sharp processes image → cache → serve
-```
-
-Each unique combination of image + transform params gets its own cache entry (24h TTL). EXIF data is always stripped before caching.
 
 ---
 
 ## Roadmap
 
-| Version | Features |
-|---------|----------|
-| **v1.0** | Core API — upload, transform, folders, health |
-| **v1.1** | Background removal, smart crop |
-| **v1.2** | API key authentication |
-| **v1.3** | Web dashboard — browse images, usage stats |
-| **v2.0** | Multi-tenant support |
+| Version | Features | Status |
+|---------|----------|--------|
+| **v1.0** | Upload, transform, folders, health, Docker | ✅ Done |
+| **v1.1** | API key auth, signed URLs, private images | ✅ Done |
+| **v1.2** | Background removal, smart crop | Planned |
+| **v1.3** | Web dashboard — browse images, usage stats | Planned |
+| **v2.0** | Video processing (ffmpeg + BullMQ) | Planned |
+| **v2.1** | Multi-tenant support | Planned |
 
 ---
 
 ## Contributing
 
-Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+Contributions are welcome — bug fixes, features, documentation, tests.
+
+```bash
+git clone https://github.com/manishdashsharma/Imgo.git
+cd Imgo
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 
 - Found a bug? [Open an issue](https://github.com/manishdashsharma/Imgo/issues/new?template=bug_report.md)
-- Have a feature idea? [Start a discussion](https://github.com/manishdashsharma/Imgo/discussions)
+- Have an idea? [Start a discussion](https://github.com/manishdashsharma/Imgo/discussions)
 - Want to contribute? [Read the guide](CONTRIBUTING.md)
 
 ---
@@ -354,6 +415,7 @@ MIT — use it, modify it, ship it. See [LICENSE](LICENSE).
 
 ---
 
-**Built by [Manish Dash Sharma](https://manishdashsharma.site)** — Senior Software Engineer. Architecting AI-powered systems that scale. From GenAI integrations to full-stack solutions — turning complex problems into elegant code.
+**Built by [Manish Dash Sharma](https://manishdashsharma.site)**
+Senior Software Engineer — architecting systems that scale.
 
 *Stop renting your image infrastructure. Own it.*

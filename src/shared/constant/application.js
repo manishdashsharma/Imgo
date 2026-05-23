@@ -26,3 +26,8 @@ export const EImageFit = {
   INSIDE: 'inside',
   OUTSIDE: 'outside',
 };
+
+export const EImageVisibility = {
+  PUBLIC: 'public',
+  PRIVATE: 'private',
+};

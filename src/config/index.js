@@ -43,6 +43,10 @@ const config = {
   logging: {
     level: process.env.LOG_LEVEL || 'info',
   },
+
+  signedUrl: {
+    secret: process.env.SIGNED_URL_SECRET || '',
+  },
 };
 
 const requiredEnvVars = ['MONGODB_URL', 'REDIS_URL'];

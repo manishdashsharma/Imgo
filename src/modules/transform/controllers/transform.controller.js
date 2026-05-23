@@ -16,7 +16,7 @@ const serveImage = asyncHandler(async (req, res) => {
 
     const { imageId } = req.params;
     const { buffer, contentType, fromCache, etag }
-      = await transformImageService(imageId, parsed.data);
+      = await transformImageService(imageId, parsed.data, req.query);
 
     const clientEtag = req.headers['if-none-match'];
     if (clientEtag && clientEtag === etag) {

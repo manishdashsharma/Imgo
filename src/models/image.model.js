@@ -10,6 +10,7 @@ const ImageSchema = new mongoose.Schema(
     size: { type: Number, required: true },
     width: { type: Number, default: null },
     height: { type: Number, default: null },
+    visibility: { type: String, enum: ['public', 'private'], default: 'public' },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }
