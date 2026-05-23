@@ -50,9 +50,10 @@ GET /v1/i/your-image-id?w=800&format=webp&q=80
 ```bash
 git clone https://github.com/manishdashsharma/Imgo.git
 cd Imgo
-cp .env.example .env
-docker-compose up -d
+./start.sh
 ```
+
+`start.sh` handles everything — checks Docker is running, creates `.env` if missing, starts all services, and shows live status.
 
 Your API is running at `http://localhost:3000`.
 
