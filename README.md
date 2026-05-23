@@ -50,6 +50,12 @@ GET /v1/i/your-image-id?w=800&format=webp&q=80
 
 ---
 
+## Architecture
+
+![Imgo — Request Architecture](docs/architecture.png)
+
+---
+
 ## Quick Start
 
 ### Docker (recommended)
